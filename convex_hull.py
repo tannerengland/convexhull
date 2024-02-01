@@ -24,8 +24,8 @@ class Node:
         self.next = None
         self.prev = None
 
-	def getValue(self):
-		return self.data
+	# def getValue(self):
+	# 	return self.data
 
 	# def __init__(self, x, y):
 	# 	self.x = x
@@ -110,7 +110,7 @@ class ConvexHullSolver(QObject):
 		node = divideConquer(points)
 		currNode = node
 		nodeList = []
-		while (node.data == currNode.data ):
+		while (node.data == currNode.data):
 			nodeList.append(currNode)
 			currNode = node.next
 
@@ -140,7 +140,10 @@ def splitLR(points):
 def divideConquer(points):
 		# base case of 1 point: if so return the point as a node
 	if (len(points) == 1):
-		return Node(points[0])
+		node = Node(points[0])
+		node.next = node
+		node.prev = node
+		return node
 	# base case of 2 points: convert to nodes, connect via
 	if (len(points) == 2):
 		node1 = Node(points[0])
@@ -156,47 +159,93 @@ def divideConquer(points):
 	return merge(left,right)
 
 def merge(L,R):
-	findUpperTangent(L,R)
-	# findLowerTangent(L,R)
+	findTangents(L,R)
 
-def findUpperTangent(L,R):
-	# p = rightmost_point(L)
-	currMax = L.data.x()
-	if not isinstance(L, Node):
+
+def findMax(L,R):
+
+
+def findMin(L,R):
+
+
+def findTangents(L,R):
+	pointList = []
+
+	if not isinstance(L, Node) and (isinstance(L, list) or isinstance(L, tuple)):
+		pointMax = L[0]
 		currMax = L[0].data.x()
 		for curr in L[1:]:
-			if curr.data.x > currMax:
-				currMax = curr
-	p = currMax
+			if curr.data.x() > currMax:
+				pointMax = curr
+				currMax = curr.data.x
+	else:
+		pointMax = L
+	permL = pointMax
+	l = permL
 
-	# q = leftmost_point(R)
-	currMin = R.x
-	if not isinstance(R, Node):
-		currMin = R[0].x
+	if not isinstance(R, Node) and (isinstance(R, list) or isinstance(R, tuple)):
+		pointMin = R[0]
+		currMin = R[0].data.x()
 		for curr in R[1:]:
-			if curr.x < currMin:
-				currMin = curr.x
-	q = currMin.x
-	# temp = line(p, q)
+			if curr.data.x() < currMin:
+				pointMin = curr
+				currMin = curr.data.x
+	else:
+		pointMin = R
+	permR = pointMin
+	r = permR
 
-	done = False
-	while not done:
-		done = True
-		while not is_upper_tangent(temp, L):
-			# r = p_counter_clockwise_neighbor(L, p)
-			r = p.prev
-			temp = line(r, q)
-			p = r
-			done = False
+	isLeft = True
+	leftDone = False
+	rightDone = False
+	while not leftDone and not rightDone:
+		if (isLeft):
+			preslopeL = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
+			postslopeL = ((l.prev.data.y()-r.data.y())/(l.prev.data.x()-r.data.x()))
+			if (preslopeL > postslopeL):
+				l = l.prev
+				rightDone = False
+			else:
+				leftDone = True
+		else:
+			preslopeR = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
+			postslopeR = ((l.data.y()-r.next.data.y())/(l.data.x()-r.next.data.x()))
+			if (preslopeR > postslopeR):
+				r = r.next
+				leftDone = False
+			else:
+				rightDone = True
+		isLeft = not isLeft
 
-		while not is_upper_tangent(temp, R):
-			# r = q_clockwise_neighbor(R, q)
-			r = q.next
-			temp = line(p, r)
-			q = r
-			done = False
-	return temp
+	pointList.extend([l,r])
 
+	l = permL
+	r = permR
 
+	isLeft = True
+	leftDone = False
+	rightDone = False
+	while not leftDone and not rightDone:
+		if (isLeft):
+			preslopeL = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
+			postslopeL = ((l.next.data.y()-r.data.y())/(l.next.data.x()-r.data.x()))
+			if (preslopeL > postslopeL):
+				l = l.prev
+				rightDone = False
+			else:
+				leftDone = True
+		else:
+			preslopeR = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
+			postslopeR = ((l.data.y()-r.prev.data.y())/(l.data.x()-r.prev.data.x()))
+			if (preslopeR > postslopeR):
+				r = r.next
+				leftDone = False
+			else:
+				rightDone = True
+		isLeft = not isLeft
+
+	pointList.extend([l,r])
+
+	return pointList
 
 

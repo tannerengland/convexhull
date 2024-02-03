@@ -1,8 +1,3 @@
-import math
-
-
-
-
 from which_pyqt import PYQT_VER
 if PYQT_VER == 'PYQT5':
 	from PyQt5.QtCore import QLineF, QPointF, QObject
@@ -13,41 +8,13 @@ elif PYQT_VER == 'PYQT6':
 else:
 	raise Exception('Unsupported Version of PyQt: {}'.format(PYQT_VER))
 
-
-
 import time
-
 
 class Node:
     def __init__(self, data):
         self.data = data
         self.next = None
         self.prev = None
-
-	# def getValue(self):
-	# 	return self.data
-
-	# def __init__(self, x, y):
-	# 	self.x = x
-	# 	self.y = y
-	# 	self.next = None
-	# 	self.prev = None
-
-    # def setNext(self, next_node):
-    #     self.next_node = next_node
-	#
-    # def getNext(self):
-    #     return self.next_node
-	#
-    # def setPrev(self, prev_node):
-    #     self.prev = prev_node
-	#
-    # def getPrev(self):
-    #     return self.prev_node
-	#
-    # def getValue(self):
-    #     return self.value
-
 
 
 # Some global color constants that might be useful
@@ -107,35 +74,27 @@ class ConvexHullSolver(QObject):
 		points.sort(key=lambda point: point.x())
 		t2 = time.time()
 
-		node = divideConquer(points)
-		currNode = node
-		nodeList = []
-		while (node.data == currNode.data):
-			nodeList.append(currNode)
-			currNode = node.next
-
-
 		t3 = time.time()
 		# this is a dummy polygon of the first 3 unsorted points
-
 		# polygon = [QLineF(points[i],points[(i+1)%3]) for i in range(3)]
-		polygon = [QLineF(nodeList[i],nodeList[(i+1)%3]) for i in range(len(nodeList))]
+
+		node = divideConquer(points)
+		currNode = node
+		nodes = []
+		while True:
+			nextNode = currNode.next
+			nodes.append(QLineF(currNode.data, nextNode.data))
+			currNode = nextNode
+			if currNode == node:
+				break
 
 		# TODO: REPLACE THE LINE ABOVE WITH A CALL TO YOUR DIVIDE-AND-CONQUER CONVEX HULL SOLVER
 		t4 = time.time()
 
 		# when passing lines to the display, pass a list of QLineF objects.  Each QLineF
 		# object can be created with two QPointF objects corresponding to the endpoints
-		self.showHull(polygon,RED)
+		self.showHull(nodes,RED)
 		self.showText('Time Elapsed (Convex Hull): {:3.3f} sec'.format(t4-t3))
-
-def splitLR(points):
-	# Calculate the midpoint index
-	mid = len(points) // 2
-	# Split the list into 2 halves
-	L = points[:mid]
-	R = points[mid:]
-	return L,R
 
 def divideConquer(points):
 		# base case of 1 point: if so return the point as a node
@@ -152,100 +111,115 @@ def divideConquer(points):
 		node1.prev = node2
 		node2.next = node1
 		node2.prev = node1
-		return node1, node2
+		return node1
+	if (len(points) == 3):
+		node1 = Node(points[0])
+		node2 = Node(points[1])
+		node3 = Node(points[2])
+		slope2 = slopeFinder(node1, node2)
+		slope3 = slopeFinder(node1, node3)
+		if (slope2 > slope3):
+			node1.next = node2
+			node2.next = node3
+			node3.next = node1
+			node1.prev = node3
+			node3.prev = node2
+			node2.prev = node1
+		else:
+			node1.next = node3
+			node3.next = node2
+			node2.next = node1
+			node1.prev = node2
+			node2.prev = node3
+			node3.prev = node1
+		return node1
 	L,R = splitLR(points)
 	left = divideConquer(L)
 	right = divideConquer(R)
-	return merge(left,right)
+	return findTangents(left,right)
 
-def merge(L,R):
-	findTangents(L,R)
+def splitLR(points):
+	# Calculate the midpoint index
+	mid = len(points) // 2
+	# Split the list into 2 halves
+	L = points[:mid]
+	R = points[mid:]
+	return L,R
 
+def slopeFinder(n1, n2):
+	return ((n2.data.y() - n1.data.y())/(n2.data.x() - n1.data.x()))
 
-def findMax(L,R):
+def findMax(L):
+	while L.next.data.x() > L.data.x():
+		L = L.next
+	return L
 
-
-def findMin(L,R):
-
+def findMin(R):
+	while R.prev.data.x() < R.data.x():
+		R = R.prev
+	return R
 
 def findTangents(L,R):
-	pointList = []
 
-	if not isinstance(L, Node) and (isinstance(L, list) or isinstance(L, tuple)):
-		pointMax = L[0]
-		currMax = L[0].data.x()
-		for curr in L[1:]:
-			if curr.data.x() > currMax:
-				pointMax = curr
-				currMax = curr.data.x
-	else:
-		pointMax = L
-	permL = pointMax
-	l = permL
-
-	if not isinstance(R, Node) and (isinstance(R, list) or isinstance(R, tuple)):
-		pointMin = R[0]
-		currMin = R[0].data.x()
-		for curr in R[1:]:
-			if curr.data.x() < currMin:
-				pointMin = curr
-				currMin = curr.data.x
-	else:
-		pointMin = R
-	permR = pointMin
-	r = permR
+	leftMax = findMax(L)
+	rightMin = findMin(R)
+	l = leftMax
+	r = rightMin
+	lc = leftMax
+	rc = rightMin
 
 	isLeft = True
 	leftDone = False
 	rightDone = False
-	while not leftDone and not rightDone:
+	while not (leftDone and rightDone):
 		if (isLeft):
-			preslopeL = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
-			postslopeL = ((l.prev.data.y()-r.data.y())/(l.prev.data.x()-r.data.x()))
+			preslopeL = slopeFinder(l,r)
+			postslopeL = slopeFinder(l.prev,r)
 			if (preslopeL > postslopeL):
 				l = l.prev
 				rightDone = False
 			else:
 				leftDone = True
 		else:
-			preslopeR = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
-			postslopeR = ((l.data.y()-r.next.data.y())/(l.data.x()-r.next.data.x()))
-			if (preslopeR > postslopeR):
+			preslopeR = slopeFinder(l,r)
+			postslopeR = slopeFinder(l,r.next)
+			if (preslopeR < postslopeR):
 				r = r.next
 				leftDone = False
 			else:
 				rightDone = True
 		isLeft = not isLeft
-
-	pointList.extend([l,r])
-
-	l = permL
-	r = permR
 
 	isLeft = True
 	leftDone = False
 	rightDone = False
-	while not leftDone and not rightDone:
+	while not (leftDone and rightDone):
 		if (isLeft):
-			preslopeL = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
-			postslopeL = ((l.next.data.y()-r.data.y())/(l.next.data.x()-r.data.x()))
-			if (preslopeL > postslopeL):
-				l = l.prev
+			preslopeL = slopeFinder(lc,rc)
+			postslopeL = slopeFinder(lc.next,rc)
+			if (preslopeL < postslopeL):
+				lc = lc.next
 				rightDone = False
 			else:
 				leftDone = True
 		else:
-			preslopeR = ((l.data.y()-r.data.y())/(l.data.x()-r.data.x()))
-			postslopeR = ((l.data.y()-r.prev.data.y())/(l.data.x()-r.prev.data.x()))
+			preslopeR = slopeFinder(lc,rc)
+			postslopeR = slopeFinder(lc,rc.prev)
 			if (preslopeR > postslopeR):
-				r = r.next
+				rc = rc.prev
 				leftDone = False
 			else:
 				rightDone = True
 		isLeft = not isLeft
 
-	pointList.extend([l,r])
+	l.next = r
+	r.prev = l
+	rc.next = lc
+	lc.prev = rc
 
-	return pointList
+	return rc
 
 
+# pointList = [QPointF(1,1),QPointF(2,3),QPointF(3,2),QPointF(5,-2), QPointF(6,0.1)]
+# pointList.sort(key=lambda point: point.x())
+# divideConquer(pointList)

@@ -98,11 +98,11 @@ class ConvexHullSolver(QObject):
 
 def divideConquer(points):
 		# base case of 1 point: if so return the point as a node
-	if (len(points) == 1):
-		node = Node(points[0])
-		node.next = node
-		node.prev = node
-		return node
+	# if (len(points) == 1):
+	# 	node = Node(points[0])
+	# 	node.next = node
+	# 	node.prev = node
+	# 	return node
 	# base case of 2 points: convert to nodes, connect via
 	if (len(points) == 2):
 		node1 = Node(points[0])
@@ -150,14 +150,58 @@ def slopeFinder(n1, n2):
 	return ((n2.data.y() - n1.data.y())/(n2.data.x() - n1.data.x()))
 
 def findMax(L):
-	while L.next.data.x() > L.data.x():
-		L = L.next
-	return L
+	# while ((L.next.data.x() > L.data.x())):
+	# 	L = L.next
+	# return L
+
+	head = L
+	maxX = L.data.x()
+	maxNode = L
+	current_node = L.next
+
+	while current_node is not head:
+		if current_node.data.x() > maxX:
+			maxX = current_node.data.x()
+			maxNode = current_node
+		current_node = current_node.next
+
+	return maxNode
+# and (L.data.x() < L.prev.data.x())
+# 	if not isinstance(L, Node):
+# 		max = L[0].data.x()
+# 		for i in L[1:]:
+# 			if i.data.x() > max:
+# 				max = i.data.x()
+# 		return max
+# 	else:
+# 		return L
 
 def findMin(R):
-	while R.prev.data.x() < R.data.x():
-		R = R.prev
-	return R
+	# while ((R.prev.data.x() < R.data.x())):
+	# 	R = R.prev
+	# return R
+	head = R
+	minX = R.data.x()
+	minNode = R
+	current_node = R.next
+
+	while current_node is not head:
+		if current_node.data.x() < minX:
+			minX = current_node.data.x()
+			minNode = current_node
+		current_node = current_node.next
+
+	return minNode
+
+# and (R.data.x() > R.next.data.x())
+# 	if not isinstance(R, Node):
+# 		min = R[0].data.x()
+# 		for i in R[1:]:
+# 			if i.data.x() < min:
+# 				min = i.data.x()
+# 		return min
+# 	else:
+# 		return R
 
 def findTangents(L,R):
 
@@ -220,6 +264,6 @@ def findTangents(L,R):
 	return rc
 
 
-# pointList = [QPointF(1,1),QPointF(2,3),QPointF(3,2),QPointF(5,-2), QPointF(6,0.1)]
+# pointList = [QPointF(1,1),QPointF(2,-1),QPointF(4,3),QPointF(5,-2), QPointF(6,5), QPointF(8,2), QPointF(9,4)]
 # pointList.sort(key=lambda point: point.x())
 # divideConquer(pointList)
